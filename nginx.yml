@@ -1,7 +1,7 @@
 ---
 - name: Configure Web Servers behind Load Balancer
   hosts: role_web
-  become: yes
+  become: true
   gather_facts: true
   tasks:
     - name: Update apt cache and install Nginx
