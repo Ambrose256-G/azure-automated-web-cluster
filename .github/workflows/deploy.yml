@@ -1,0 +1,88 @@
+name: Bicep Infra & Ansible Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  lint-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Syntax Validation for Bicep
+      - name: Run Bicep Linter
+        run: az bicep build --file infra.bicep
+
+      # Syntax Validation for Ansible
+      - name: Run Ansible Lint
+        uses: ansible/ansible-lint-action@v6
+        with:
+          targets: "nginx.yml"
+
+  deploy-infrastructure:
+    needs: lint-and-validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Create resource group if it does not exist
+      - name: Create Resource Group
+        run: |
+          az group create --name rg-ansible-lb-lab --location eastus
+
+      # Deploy Infrastructure via Bicep
+      - name: Deploy Bicep Template
+        uses: azure/arm-deploy@v2
+        with:
+          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          resourceGroupName: rg-ansible-lb-lab
+          template: ./infra.bicep
+          parameters: adminSshKey="${{ secrets.VM_SSH_PUBLIC_KEY }}"
+
+  configure-vms:
+    needs: deploy-infrastructure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.7'
+
+      - name: Install Ansible Dependencies
+        run: |
+          pip install ansible azure-mgmt-compute azure-mgmt-network
+          ansible-galaxy collection install azure.azcollection
+
+      - name: Configure Private SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          # Clear host checking so GitHub Action runner does not hang on new VM connections
+          echo "host_key_checking = False" > ansible.cfg
+
+      # Execute Ansible Playbook targeting the dynamic Azure inventory
+      - name: Run Ansible Playbook
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_SECRET: ${{ secrets.AZURE_SECRET }}
+          AZURE_TENANT: ${{ secrets.AZURE_TENANT }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          ansible-playbook -i inventory.azure_rm.yml nginx.yml

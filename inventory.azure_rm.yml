@@ -1,0 +1,7 @@
+plugin: azure.azcollection.azure_rm
+include_vm_resource_groups:
+  - "rg-ansible-lb-lab"
+auth_source: env
+keyed_groups:
+  - key: tags.role
+    prefix: role
