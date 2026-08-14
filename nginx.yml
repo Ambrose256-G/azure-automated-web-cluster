@@ -4,11 +4,21 @@
   become: true
   gather_facts: true
   tasks:
-    - name: Update apt cache and install Nginx
+
+    - name: Wait for automatic system updates to release the apt lock
+      ansible.builtin.apt:
+        update_cache: true
+      register: apt_status
+      until: apt_status is success
+      retries: 30
+      delay: 10
+
+    - name: Ensure Nginx is installed
       ansible.builtin.apt:
         name: nginx
         state: present
         update_cache: true
+
 
     - name: Create index HTML showcasing Load Balancer routing
       ansible.builtin.copy:
