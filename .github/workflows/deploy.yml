@@ -2,7 +2,7 @@ name: Bicep Infra & Ansible Deploy
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   lint-and-validate:
