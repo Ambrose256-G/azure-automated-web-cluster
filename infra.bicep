@@ -36,7 +36,7 @@ resource nsg 'Microsoft.Network/networkSecurityGroups@2023-11-01' = {
           sourceAddressPrefix: '*'
           destinationAddressPrefix: '*'
           access: 'Allow'
-          priority: 1001
+          priority: 900
           direction: 'Inbound'
         }
       }
