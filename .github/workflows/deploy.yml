@@ -76,7 +76,7 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           # Clear host checking so GitHub Action runner does not hang on new VM connections
            echo "[defaults]" > ansible.cfg
-          echo "host_key_checking = False" > ansible.cfg
+          echo "host_key_checking = False" >> ansible.cfg
 
       # Execute Ansible Playbook targeting the dynamic Azure inventory
       - name: Run Ansible Playbook
