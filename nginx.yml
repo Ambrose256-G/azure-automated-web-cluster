@@ -11,13 +11,13 @@
         update_cache: true
 
     - name: Create index HTML showcasing Load Balancer routing
-      copy:
+      ansible.builtin.copy:
         content: "Hello from Bicep + Ansible Backend VM: {{ ansible_hostname }}\n"
         dest: /var/www/html/index.html
         mode: '0644'
 
     - name: Ensure Nginx is running and enabled
-      service:
+      ansible.builtin.service:
         name: nginx
         state: started
         enabled: true
